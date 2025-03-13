@@ -7,13 +7,13 @@ import ClipLoader from 'react-spinners/ClipLoader';
 const PDFUpload = () => {
   const [file, setFile] = useState(null);
   const [jsonData, setJsonData] = useState({});
-  const [fileUrl, setFileUrl] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [routeUrl, setRouteUrl] = useState('');
+  const [secretKey, setSecretKey] = useState('');
 
   const onDrop = useCallback((acceptedFiles) => {
     const uploadedFile = acceptedFiles[0];
     setFile(uploadedFile);
-    setFileUrl(URL.createObjectURL(uploadedFile));
   }, []);
 
   const { getRootProps, getInputProps } = useDropzone({
@@ -30,10 +30,19 @@ const PDFUpload = () => {
     formData.append('pdf', file);
 
     try {
-      const response = await fetch('http://localhost:3000/docs-extraction', {
-        method: 'POST',
-        body: formData,
-      });
+      const response = await fetch(
+        routeUrl,
+        {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'authorization': `Basic ${import.meta.env.VITE_LANDING_AI_SECRET_KEY}`,
+            'x-api-key': secretKey,
+            'x-javelin-user': 'user_2okLrYS39kdSQZIyCStd45ntMT5',
+            'x-javelin-userrole': 'superadmin',
+          },
+        },
+      );
 
       const data = await response.json();
       setJsonData(data);
@@ -41,38 +50,66 @@ const PDFUpload = () => {
       setJsonData(error);
     } finally {
       setLoading(false);
-      setFile(null);
-      setFileUrl(null);
     }
   };
 
   return (
     <div className='flex flex-col items-center min-h-screen bg-silver-900 p-6'>
       <div className='flex gap-4 w-full h-[94vh]'>
-        <div className='w-full flex flex-col items-center gap-6 rounded-xl border border-blue-700 bg-white p-4 overflow-scroll'>
+        <div className='w-full flex flex-col items-center gap-[2rem] rounded-xl border border-blue-700 bg-white p-5 overflow-scroll'>
           <h1 className='flex items-center text-lg w-full mb-2 font-bold'>
             Document Extraction
           </h1>
-          <div
-            {...getRootProps()}
-            className={`w-[30rem] py-[3rem] bg-white border-2 border-dashed ${
-              file ? 'border-primary-300' : 'border-gray-300'
-            } rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all`}
-          >
-            <input {...getInputProps()} />
-            <AiOutlineFilePdf size={40} className='text-primary-300 mb-2' />
-            {file ? (
-              <p className='text-gray-800 font-medium text-sm flex items-center gap-2'>
-                <AiOutlineFilePdf size={20} className='text-red-600' />{' '}
-                {file.name}
-              </p>
-            ) : (
-              <p className='text-gray-700'>
-                Drag & drop a PDF file here, or click to select one
-              </p>
-            )}
+          <div className='w-full flex flex-col'>
+            <label htmlFor='route-url' className='mb-2'>
+              Route URL
+            </label>
+            <input
+              id='route-url'
+              type='text'
+              value={routeUrl}
+              onChange={(e) => setRouteUrl(e.target.value)}
+              className='border border-gray-300 focus:outline-none rounded-lg px-2 py-2 w-full'
+            />
           </div>
 
+          <div className='w-full flex flex-col'>
+            <label htmlFor='secret-key' className='mb-2'>
+              Application Secret Key
+            </label>
+            <input
+              id='secret-key'
+              type='text'
+              value={secretKey}
+              onChange={(e) => setSecretKey(e.target.value)}
+              className='border border-gray-300 focus:outline-none rounded-lg px-2 py-2 w-full'
+            />
+          </div>
+          <div className='w-full flex flex-col'>
+            <label htmlFor='upload-document' className='mb-2'>
+              Upload Document
+            </label>
+            <div
+              id='upload-document'
+              {...getRootProps()}
+              className={`w-[30rem] py-[3rem] bg-white border-2 border-dashed ${
+                file ? 'border-primary-300' : 'border-gray-300'
+              } rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all w-full`}
+            >
+              <input {...getInputProps()} />
+              <AiOutlineFilePdf size={40} className='text-primary-300 mb-2' />
+              {file ? (
+                <p className='text-gray-800 font-medium text-sm flex items-center gap-2'>
+                  <AiOutlineFilePdf size={20} className='text-red-600' />{' '}
+                  {file.name}
+                </p>
+              ) : (
+                <p className='text-gray-700'>
+                  Drag & drop a PDF file here, or click to select one
+                </p>
+              )}
+            </div>
+          </div>
           <button
             disabled={loading || !file}
             onClick={handleExtractData}
@@ -90,14 +127,6 @@ const PDFUpload = () => {
               'Extract Data'
             )}
           </button>
-
-          {fileUrl && (
-            <object
-              data={fileUrl + '#toolbar=0&navpanes=0&scrollbar=0'}
-              type='application/pdf'
-              className='w-[30rem] h-full border border-gray-300 rounded-md'
-            ></object>
-          )}
         </div>
 
         <div className='w-full bg-white p-4 rounded-lg shadow-md overflow-auto'>
